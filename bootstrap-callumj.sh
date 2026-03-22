@@ -30,6 +30,39 @@ detect_pkg_manager() {
   return 1
 }
 
+group_exists() {
+  local group_name="$1"
+
+  if command -v getent >/dev/null 2>&1; then
+    getent group "$group_name" >/dev/null 2>&1
+  else
+    grep -q "^${group_name}:" /etc/group
+  fi
+}
+
+get_user_home() {
+  local username="$1"
+
+  if command -v getent >/dev/null 2>&1; then
+    getent passwd "$username" | cut -d: -f6
+  else
+    awk -F: -v user="$username" '$1 == user { print $6 }' /etc/passwd
+  fi
+}
+
+add_user_to_group() {
+  local username="$1"
+  local group_name="$2"
+
+  if command -v usermod >/dev/null 2>&1; then
+    usermod -aG "$group_name" "$username"
+  elif command -v addgroup >/dev/null 2>&1; then
+    addgroup "$username" "$group_name"
+  else
+    fatal "no supported command found to add '$username' to group '$group_name'"
+  fi
+}
+
 install_packages() {
   local pm="$1"
   shift
@@ -84,7 +117,13 @@ ensure_user() {
   if id -u "$TARGET_USER" >/dev/null 2>&1; then
     log "user '$TARGET_USER' already exists"
   else
-    useradd -m -s "$shell_path" "$TARGET_USER"
+    if command -v useradd >/dev/null 2>&1; then
+      useradd -m -s "$shell_path" "$TARGET_USER"
+    elif command -v adduser >/dev/null 2>&1; then
+      adduser -D -s "$shell_path" "$TARGET_USER"
+    else
+      fatal "no supported command found to create user '$TARGET_USER'"
+    fi
     log "created user '$TARGET_USER'"
   fi
 }
@@ -93,17 +132,18 @@ ensure_sudo_access() {
   local sudoers_file="/etc/sudoers.d/90-${TARGET_USER}"
   local sudo_group=""
 
-  if getent group sudo >/dev/null 2>&1; then
+  if group_exists sudo; then
     sudo_group="sudo"
-  elif getent group wheel >/dev/null 2>&1; then
+  elif group_exists wheel; then
     sudo_group="wheel"
   fi
 
   if [[ -n "$sudo_group" ]]; then
-    usermod -aG "$sudo_group" "$TARGET_USER"
+    add_user_to_group "$TARGET_USER" "$sudo_group"
     log "added '$TARGET_USER' to group '$sudo_group'"
   fi
 
+  mkdir -p /etc/sudoers.d
   printf '%s ALL=(ALL:ALL) NOPASSWD:ALL\n' "$TARGET_USER" >"$sudoers_file"
   chmod 0440 "$sudoers_file"
   visudo -cf "$sudoers_file" >/dev/null
@@ -201,13 +241,15 @@ upsert_sshd_setting() {
 
 ensure_authorized_keys() {
   local user_home
+  local user_group
   local ssh_dir
   local auth_keys
   local tmp_existing
   local fetched_keys
 
-  user_home="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
+  user_home="$(get_user_home "$TARGET_USER")"
   [[ -n "$user_home" ]] || fatal "unable to determine home directory for '$TARGET_USER'"
+  user_group="$(id -gn "$TARGET_USER")"
 
   ssh_dir="${user_home}/.ssh"
   auth_keys="${ssh_dir}/authorized_keys"
@@ -228,7 +270,7 @@ ensure_authorized_keys() {
   cat "$tmp_existing" >"$auth_keys"
   rm -f "$tmp_existing"
 
-  chown -R "$TARGET_USER:$TARGET_USER" "$ssh_dir"
+  chown -R "$TARGET_USER:$user_group" "$ssh_dir"
   log "authorized_keys updated from $KEYS_URL"
 }
 
