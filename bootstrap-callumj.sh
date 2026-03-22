@@ -120,6 +120,7 @@ lock_down_sshd() {
   upsert_sshd_setting "$sshd_config" "KbdInteractiveAuthentication" "no"
   upsert_sshd_setting "$sshd_config" "ChallengeResponseAuthentication" "no"
   upsert_sshd_setting "$sshd_config" "PubkeyAuthentication" "yes"
+  ensure_sshd_runtime_dir
 
   if command -v sshd >/dev/null 2>&1; then
     sshd -t -f "$sshd_config"
@@ -137,6 +138,22 @@ lock_down_sshd() {
   fi
 
   log "sshd configured and restart attempted"
+}
+
+ensure_sshd_runtime_dir() {
+  mkdir -p /run/sshd
+  chmod 0755 /run/sshd
+  chown root:root /run/sshd
+
+  if [[ -d /etc/tmpfiles.d ]]; then
+    printf 'd /run/sshd 0755 root root -\n' >/etc/tmpfiles.d/sshd.conf
+  fi
+
+  if command -v systemd-tmpfiles >/dev/null 2>&1; then
+    systemd-tmpfiles --create /etc/tmpfiles.d/sshd.conf >/dev/null 2>&1 || true
+  fi
+
+  log "ensured sshd runtime directory at /run/sshd"
 }
 
 upsert_sshd_setting() {
