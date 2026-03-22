@@ -161,6 +161,7 @@ lock_down_sshd() {
   upsert_sshd_setting "$sshd_config" "ChallengeResponseAuthentication" "no"
   upsert_sshd_setting "$sshd_config" "PubkeyAuthentication" "yes"
   ensure_sshd_runtime_dir
+  ensure_sshd_host_keys
 
   if command -v sshd >/dev/null 2>&1; then
     sshd -t -f "$sshd_config"
@@ -194,6 +195,20 @@ ensure_sshd_runtime_dir() {
   fi
 
   log "ensured sshd runtime directory at /run/sshd"
+}
+
+ensure_sshd_host_keys() {
+  if compgen -G "/etc/ssh/ssh_host_*_key" >/dev/null; then
+    log "sshd host keys already exist"
+    return
+  fi
+
+  if ! command -v ssh-keygen >/dev/null 2>&1; then
+    fatal "ssh-keygen not found; unable to generate sshd host keys"
+  fi
+
+  ssh-keygen -A
+  log "generated sshd host keys"
 }
 
 upsert_sshd_setting() {
