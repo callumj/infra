@@ -1,0 +1,13 @@
+#!/sbin/openrc-run
+
+description="Vector log shipper"
+command="{{ alpine_vector_binary }}"
+command_args="--config {{ alpine_vector_config_path }}"
+command_background="yes"
+pidfile="/run/${RC_SVCNAME}.pid"
+retry="TERM/30/KILL/5"
+
+depend() {
+  need net localmount
+  use dns logger
+}

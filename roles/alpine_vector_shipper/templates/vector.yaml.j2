@@ -1,0 +1,43 @@
+data_dir: {{ alpine_vector_data_dir }}
+
+sources:
+  {{ alpine_vector_source_name }}:
+    type: file
+    include:
+{% for path in alpine_vector_log_paths %}
+      - {{ path | to_json }}
+{% endfor %}
+    read_from: {{ alpine_vector_read_from }}
+    ignore_not_found: true
+
+transforms:
+  {{ alpine_vector_transform_name }}:
+    type: remap
+    inputs:
+      - {{ alpine_vector_source_name }}
+    source: |
+      .host = {{ ansible_fqdn | default(ansible_hostname) | to_json }}
+      .service = "syslog"
+      .os_family = "Alpine"
+      .source_type = "file"
+      if !exists(.timestamp) {
+        .timestamp = now()
+      }
+
+sinks:
+  {{ alpine_vector_sink_name }}:
+    type: http
+    inputs:
+      - {{ alpine_vector_transform_name }}
+    uri: {{ alpine_vector_uri | to_json }}
+    compression: gzip
+    encoding:
+      codec: json
+    framing:
+      method: newline_delimited
+    healthcheck:
+      enabled: false
+    buffer:
+      type: disk
+      max_size: {{ alpine_vector_buffer_max_size }}
+      when_full: block

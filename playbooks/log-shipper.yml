@@ -1,0 +1,24 @@
+---
+- name: Configure VictoriaLogs log shipping
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    victorialogs_scheme: "{{ lookup('env', 'VICTORIALOGS_SCHEME') | default('http', true) }}"
+    victorialogs_host: "{{ lookup('env', 'VICTORIALOGS_HOST') | default('192.168.52.124', true) }}"
+    victorialogs_port: "{{ (lookup('env', 'VICTORIALOGS_PORT') | default('9428', true)) | int }}"
+
+  pre_tasks:
+    - name: Assert supported operating system
+      ansible.builtin.assert:
+        that:
+          - ansible_os_family in ['Debian', 'Alpine']
+        fail_msg: >-
+          This playbook currently supports Debian and Alpine hosts only.
+
+  roles:
+    - role: debian_journald_shipper
+      when: ansible_os_family == 'Debian'
+
+    - role: alpine_vector_shipper
+      when: ansible_os_family == 'Alpine'

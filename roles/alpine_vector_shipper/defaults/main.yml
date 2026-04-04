@@ -1,0 +1,21 @@
+---
+alpine_vector_version: "0.53.0"
+alpine_vector_arch_map:
+  x86_64: x86_64-unknown-linux-musl
+  amd64: x86_64-unknown-linux-musl
+  aarch64: aarch64-unknown-linux-musl
+  arm64: aarch64-unknown-linux-musl
+alpine_vector_root: /opt/vector
+alpine_vector_binary: /usr/local/bin/vector
+alpine_vector_config_dir: /etc/vector
+alpine_vector_config_path: /etc/vector/vector.yaml
+alpine_vector_data_dir: /var/lib/vector
+alpine_vector_log_paths:
+  - /var/log/messages
+alpine_vector_read_from: end
+alpine_vector_buffer_max_size: 268435488
+alpine_vector_source_name: alpine_syslog
+alpine_vector_transform_name: normalize_for_victorialogs
+alpine_vector_sink_name: victorialogs
+alpine_vector_uri: >-
+  {{ victorialogs_scheme }}://{{ victorialogs_host }}:{{ victorialogs_port }}/insert/jsonline?_stream_fields=host,service,os_family,source_type&_msg_field=message&_time_field=timestamp

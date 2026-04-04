@@ -1,0 +1,87 @@
+---
+- name: Assert OpenRC is the active service manager
+  ansible.builtin.assert:
+    that:
+      - ansible_service_mgr == 'openrc'
+    fail_msg: >-
+      Alpine log shipping expects OpenRC because this role installs a native OpenRC service for Vector.
+
+- name: Resolve Vector target architecture
+  ansible.builtin.set_fact:
+    alpine_vector_target: "{{ alpine_vector_arch_map.get(ansible_architecture, '') }}"
+
+- name: Assert Vector target architecture is supported
+  ansible.builtin.assert:
+    that:
+      - alpine_vector_target | length > 0
+    fail_msg: >-
+      Unsupported Alpine architecture for Vector: {{ ansible_architecture }}
+
+- name: Install Alpine runtime prerequisites
+  ansible.builtin.package:
+    name:
+      - ca-certificates
+      - tar
+    state: present
+
+- name: Ensure Vector directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ alpine_vector_root }}"
+    - "{{ alpine_vector_config_dir }}"
+    - "{{ alpine_vector_data_dir }}"
+
+- name: Download Vector archive
+  ansible.builtin.get_url:
+    url: "https://packages.timber.io/vector/{{ alpine_vector_version }}/vector-{{ alpine_vector_version }}-{{ alpine_vector_target }}.tar.gz"
+    dest: "/tmp/vector-{{ alpine_vector_version }}-{{ alpine_vector_target }}.tar.gz"
+    mode: "0644"
+    force: true
+  notify: Restart vector
+
+- name: Extract Vector archive
+  ansible.builtin.unarchive:
+    src: "/tmp/vector-{{ alpine_vector_version }}-{{ alpine_vector_target }}.tar.gz"
+    dest: "{{ alpine_vector_root }}"
+    remote_src: true
+    extra_opts:
+      - --strip-components=1
+  notify: Restart vector
+
+- name: Link Vector binary into PATH
+  ansible.builtin.file:
+    src: "{{ alpine_vector_root }}/bin/vector"
+    dest: "{{ alpine_vector_binary }}"
+    state: link
+    force: true
+  notify: Restart vector
+
+- name: Configure Vector for Alpine syslog shipping
+  ansible.builtin.template:
+    src: vector.yaml.j2
+    dest: "{{ alpine_vector_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "{{ alpine_vector_binary }} validate --no-environment --config-yaml %s"
+  notify: Restart vector
+
+- name: Install OpenRC service for Vector
+  ansible.builtin.template:
+    src: vector.openrc.j2
+    dest: /etc/init.d/vector
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart vector
+
+- name: Enable and start Vector service
+  ansible.builtin.service:
+    name: vector
+    enabled: true
+    state: started

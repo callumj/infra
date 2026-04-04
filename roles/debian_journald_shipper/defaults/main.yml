@@ -1,0 +1,11 @@
+---
+debian_journald_upload_url: "{{ victorialogs_scheme }}://{{ victorialogs_host }}:{{ victorialogs_port }}/insert/journald"
+debian_journald_network_timeout: 30s
+debian_journald_persistent_dir: /var/log/journal
+debian_journald_persistent_group: systemd-journal
+debian_journald_persistent_mode: "2755"
+debian_journald_upload_package: systemd-journal-remote
+debian_journald_upload_config_dir: /etc/systemd/journal-upload.conf.d
+debian_journald_upload_config_path: /etc/systemd/journal-upload.conf.d/10-victorialogs.conf
+debian_journald_persistent_config_dir: /etc/systemd/journald.conf.d
+debian_journald_persistent_config_path: /etc/systemd/journald.conf.d/10-persistent-storage.conf

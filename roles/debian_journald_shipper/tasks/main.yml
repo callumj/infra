@@ -1,0 +1,61 @@
+---
+- name: Assert systemd is the active service manager
+  ansible.builtin.assert:
+    that:
+      - ansible_service_mgr == 'systemd'
+    fail_msg: >-
+      Debian log shipping requires systemd because it uses systemd-journal-upload.
+
+- name: Install journald upload support
+  ansible.builtin.apt:
+    name: "{{ debian_journald_upload_package }}"
+    state: present
+    update_cache: true
+
+- name: Ensure journald persistent config directory exists
+  ansible.builtin.file:
+    path: "{{ debian_journald_persistent_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Ensure persistent journal directory exists
+  ansible.builtin.file:
+    path: "{{ debian_journald_persistent_dir }}"
+    state: directory
+    owner: root
+    group: "{{ debian_journald_persistent_group }}"
+    mode: "{{ debian_journald_persistent_mode }}"
+
+- name: Force persistent journald storage
+  ansible.builtin.template:
+    src: persistent-storage.conf.j2
+    dest: "{{ debian_journald_persistent_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart systemd-journald
+
+- name: Ensure journald upload config directory exists
+  ansible.builtin.file:
+    path: "{{ debian_journald_upload_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configure journald upload target
+  ansible.builtin.template:
+    src: journal-upload.conf.j2
+    dest: "{{ debian_journald_upload_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart systemd-journal-upload
+
+- name: Enable and start journald upload service
+  ansible.builtin.systemd:
+    name: systemd-journal-upload.service
+    enabled: true
+    state: started
