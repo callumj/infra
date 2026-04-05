@@ -6,6 +6,7 @@ alpine_vector_arch_map:
   aarch64: aarch64-unknown-linux-musl
   arm64: aarch64-unknown-linux-musl
 alpine_vector_root: /opt/vector
+alpine_vector_install_dir: "{{ alpine_vector_root }}/vector-{{ alpine_vector_target }}"
 alpine_vector_binary: /usr/local/bin/vector
 alpine_vector_config_dir: /etc/vector
 alpine_vector_config_path: /etc/vector/vector.yaml

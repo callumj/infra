@@ -48,16 +48,15 @@
     src: "/tmp/vector-{{ alpine_vector_version }}-{{ alpine_vector_target }}.tar.gz"
     dest: "{{ alpine_vector_root }}"
     remote_src: true
-    extra_opts:
-      - --strip-components=1
   notify: Restart vector
 
 - name: Link Vector binary into PATH
   ansible.builtin.file:
-    src: "{{ alpine_vector_root }}/bin/vector"
+    src: "{{ alpine_vector_install_dir }}/bin/vector"
     dest: "{{ alpine_vector_binary }}"
     state: link
     force: true
+    follow: false
   notify: Restart vector
 
 - name: Configure Vector for Alpine syslog shipping
@@ -67,7 +66,7 @@
     owner: root
     group: root
     mode: "0644"
-    validate: "{{ alpine_vector_binary }} validate --no-environment --config-yaml %s"
+    validate: "{{ alpine_vector_install_dir }}/bin/vector validate --no-environment --config-yaml %s"
   notify: Restart vector
 
 - name: Install OpenRC service for Vector
