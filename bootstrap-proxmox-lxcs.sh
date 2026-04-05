@@ -5,6 +5,10 @@ BOOTSTRAP_URL="${BOOTSTRAP_URL:-https://raw.githubusercontent.com/callumj/infra/
 TARGET_USER="${TARGET_USER:-callumj}"
 KEYS_URL="${KEYS_URL:-https://github.com/callumj.keys}"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
+VICTORIALOGS_SCHEME="${VICTORIALOGS_SCHEME:-}"
+VICTORIALOGS_HOST="${VICTORIALOGS_HOST:-}"
+VICTORIALOGS_PORT="${VICTORIALOGS_PORT:-}"
+DEBIAN_JOURNALD_INITIAL_POSITION="${DEBIAN_JOURNALD_INITIAL_POSITION:-}"
 
 STARTED_HERE=()
 SUCCEEDED=()
@@ -48,6 +52,10 @@ Environment:
   TARGET_USER    User to create inside each guest
   KEYS_URL       SSH public keys URL for authorized_keys
   GITHUB_TOKEN   Optional token for fetching a private GitHub raw URL
+  VICTORIALOGS_SCHEME  Optional passthrough for log shipper bootstrap
+  VICTORIALOGS_HOST    Optional passthrough for log shipper bootstrap
+  VICTORIALOGS_PORT    Optional passthrough for log shipper bootstrap
+  DEBIAN_JOURNALD_INITIAL_POSITION  Optional passthrough for log shipper bootstrap
 EOF
 }
 
@@ -187,18 +195,18 @@ ensure_guest_prereqs() {
 run_bootstrap() {
   if command -v curl >/dev/null 2>&1; then
     if [ -n "${GITHUB_TOKEN:-}" ]; then
-      curl -fsSL -H "Authorization: Bearer ${GITHUB_TOKEN}" "${BOOTSTRAP_URL}" | env TARGET_USER="${TARGET_USER}" KEYS_URL="${KEYS_URL}" bash
+      curl -fsSL -H "Authorization: Bearer ${GITHUB_TOKEN}" "${BOOTSTRAP_URL}" | env TARGET_USER="${TARGET_USER}" KEYS_URL="${KEYS_URL}" VICTORIALOGS_SCHEME="${VICTORIALOGS_SCHEME:-}" VICTORIALOGS_HOST="${VICTORIALOGS_HOST:-}" VICTORIALOGS_PORT="${VICTORIALOGS_PORT:-}" DEBIAN_JOURNALD_INITIAL_POSITION="${DEBIAN_JOURNALD_INITIAL_POSITION:-}" bash
     else
-      curl -fsSL "${BOOTSTRAP_URL}" | env TARGET_USER="${TARGET_USER}" KEYS_URL="${KEYS_URL}" bash
+      curl -fsSL "${BOOTSTRAP_URL}" | env TARGET_USER="${TARGET_USER}" KEYS_URL="${KEYS_URL}" VICTORIALOGS_SCHEME="${VICTORIALOGS_SCHEME:-}" VICTORIALOGS_HOST="${VICTORIALOGS_HOST:-}" VICTORIALOGS_PORT="${VICTORIALOGS_PORT:-}" DEBIAN_JOURNALD_INITIAL_POSITION="${DEBIAN_JOURNALD_INITIAL_POSITION:-}" bash
     fi
     return
   fi
 
   if command -v wget >/dev/null 2>&1; then
     if [ -n "${GITHUB_TOKEN:-}" ]; then
-      wget -qO- --header="Authorization: Bearer ${GITHUB_TOKEN}" "${BOOTSTRAP_URL}" | env TARGET_USER="${TARGET_USER}" KEYS_URL="${KEYS_URL}" bash
+      wget -qO- --header="Authorization: Bearer ${GITHUB_TOKEN}" "${BOOTSTRAP_URL}" | env TARGET_USER="${TARGET_USER}" KEYS_URL="${KEYS_URL}" VICTORIALOGS_SCHEME="${VICTORIALOGS_SCHEME:-}" VICTORIALOGS_HOST="${VICTORIALOGS_HOST:-}" VICTORIALOGS_PORT="${VICTORIALOGS_PORT:-}" DEBIAN_JOURNALD_INITIAL_POSITION="${DEBIAN_JOURNALD_INITIAL_POSITION:-}" bash
     else
-      wget -qO- "${BOOTSTRAP_URL}" | env TARGET_USER="${TARGET_USER}" KEYS_URL="${KEYS_URL}" bash
+      wget -qO- "${BOOTSTRAP_URL}" | env TARGET_USER="${TARGET_USER}" KEYS_URL="${KEYS_URL}" VICTORIALOGS_SCHEME="${VICTORIALOGS_SCHEME:-}" VICTORIALOGS_HOST="${VICTORIALOGS_HOST:-}" VICTORIALOGS_PORT="${VICTORIALOGS_PORT:-}" DEBIAN_JOURNALD_INITIAL_POSITION="${DEBIAN_JOURNALD_INITIAL_POSITION:-}" bash
     fi
     return
   fi
@@ -216,6 +224,10 @@ EOF
     "TARGET_USER=$TARGET_USER" \
     "KEYS_URL=$KEYS_URL" \
     "GITHUB_TOKEN=$GITHUB_TOKEN" \
+    "VICTORIALOGS_SCHEME=$VICTORIALOGS_SCHEME" \
+    "VICTORIALOGS_HOST=$VICTORIALOGS_HOST" \
+    "VICTORIALOGS_PORT=$VICTORIALOGS_PORT" \
+    "DEBIAN_JOURNALD_INITIAL_POSITION=$DEBIAN_JOURNALD_INITIAL_POSITION" \
     sh -lc "$remote_script"
 }
 
