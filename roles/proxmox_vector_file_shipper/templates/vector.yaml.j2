@@ -16,7 +16,7 @@ transforms:
     inputs:
       - {{ proxmox_vector_source_name }}
     source: |
-      .host = {{ ansible_fqdn | default(ansible_hostname) | to_json }}
+      .host = {{ ansible_hostname | to_json }}
       .os_family = "Debian"
       .source_type = "file"
       .service = "proxmox-filelog"

@@ -16,7 +16,7 @@ transforms:
     inputs:
       - {{ alpine_vector_source_name }}
     source: |
-      .host = {{ ansible_fqdn | default(ansible_hostname) | to_json }}
+      .host = {{ ansible_hostname | to_json }}
       .service = "syslog"
       .os_family = "Alpine"
       .source_type = "file"
