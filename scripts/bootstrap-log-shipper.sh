@@ -43,7 +43,11 @@ install_packages() {
     apt-get)
       export DEBIAN_FRONTEND=noninteractive
       apt-get update
-      apt-get install -y ca-certificates curl git ansible-core tar
+      if apt-cache show ansible-core >/dev/null 2>&1; then
+        apt-get install -y ca-certificates curl git ansible-core tar
+      else
+        apt-get install -y ca-certificates curl git ansible tar
+      fi
       ;;
     apk)
       apk add --no-cache ca-certificates curl git ansible-core tar
