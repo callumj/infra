@@ -198,9 +198,9 @@ run_bootstrap() {
 
   if command -v curl >/dev/null 2>&1; then
     if [ -n "${GITHUB_TOKEN:-}" ]; then
-      curl -fsSL -H "Authorization: Bearer ${GITHUB_TOKEN}" "${BOOTSTRAP_URL}" -o "${tmp_script}"
+      curl -4fsSL --retry 5 --retry-delay 2 -H "Authorization: Bearer ${GITHUB_TOKEN}" "${BOOTSTRAP_URL}" -o "${tmp_script}"
     else
-      curl -fsSL "${BOOTSTRAP_URL}" -o "${tmp_script}"
+      curl -4fsSL --retry 5 --retry-delay 2 "${BOOTSTRAP_URL}" -o "${tmp_script}"
     fi
     env TARGET_USER="${TARGET_USER}" KEYS_URL="${KEYS_URL}" VICTORIALOGS_SCHEME="${VICTORIALOGS_SCHEME:-}" VICTORIALOGS_HOST="${VICTORIALOGS_HOST:-}" VICTORIALOGS_PORT="${VICTORIALOGS_PORT:-}" DEBIAN_JOURNALD_INITIAL_POSITION="${DEBIAN_JOURNALD_INITIAL_POSITION:-}" bash "${tmp_script}"
     rm -f "${tmp_script}"
@@ -210,9 +210,9 @@ run_bootstrap() {
 
   if command -v wget >/dev/null 2>&1; then
     if [ -n "${GITHUB_TOKEN:-}" ]; then
-      wget -qO "${tmp_script}" --header="Authorization: Bearer ${GITHUB_TOKEN}" "${BOOTSTRAP_URL}"
+      wget -4 -qO "${tmp_script}" --tries=5 --waitretry=2 --header="Authorization: Bearer ${GITHUB_TOKEN}" "${BOOTSTRAP_URL}"
     else
-      wget -qO "${tmp_script}" "${BOOTSTRAP_URL}"
+      wget -4 -qO "${tmp_script}" --tries=5 --waitretry=2 "${BOOTSTRAP_URL}"
     fi
     env TARGET_USER="${TARGET_USER}" KEYS_URL="${KEYS_URL}" VICTORIALOGS_SCHEME="${VICTORIALOGS_SCHEME:-}" VICTORIALOGS_HOST="${VICTORIALOGS_HOST:-}" VICTORIALOGS_PORT="${VICTORIALOGS_PORT:-}" DEBIAN_JOURNALD_INITIAL_POSITION="${DEBIAN_JOURNALD_INITIAL_POSITION:-}" bash "${tmp_script}"
     rm -f "${tmp_script}"

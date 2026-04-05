@@ -273,7 +273,7 @@ ensure_authorized_keys() {
   touch "$auth_keys"
   chmod 0600 "$auth_keys"
 
-  fetched_keys="$(curl -fsSL "$KEYS_URL")" || fatal "failed to fetch keys from $KEYS_URL"
+  fetched_keys="$(curl -4fsSL --retry 5 --retry-delay 2 "$KEYS_URL")" || fatal "failed to fetch keys from $KEYS_URL"
   [[ -n "$fetched_keys" ]] || fatal "no keys found at $KEYS_URL"
 
   tmp_existing="$(mktemp)"
