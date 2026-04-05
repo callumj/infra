@@ -66,21 +66,43 @@
     path: "{{ debian_journald_upload_state_path }}"
   register: debian_journald_upload_state
 
+- name: Check whether journald upload runtime state directory exists
+  ansible.builtin.stat:
+    path: "{{ debian_journald_upload_state_dir }}"
+    follow: true
+  register: debian_journald_upload_runtime_state_dir
+  when: debian_journald_initial_position == 'tail'
+
+- name: Start journald upload service once to create runtime state directory
+  when:
+    - debian_journald_initial_position == 'tail'
+    - not debian_journald_upload_runtime_state_dir.stat.exists
+  ansible.builtin.systemd:
+    name: systemd-journal-upload.service
+    state: started
+
+- name: Refresh journald upload runtime state directory metadata
+  ansible.builtin.stat:
+    path: "{{ debian_journald_upload_state_dir }}"
+    follow: true
+  register: debian_journald_upload_runtime_state_dir
+  when: debian_journald_initial_position == 'tail'
+
+- name: Repair existing journald upload state file ownership
+  ansible.builtin.file:
+    path: "{{ debian_journald_upload_state_path }}"
+    owner: "{{ debian_journald_upload_runtime_state_dir.stat.uid }}"
+    group: "{{ debian_journald_upload_runtime_state_dir.stat.gid }}"
+    mode: "0600"
+  when:
+    - debian_journald_initial_position == 'tail'
+    - debian_journald_upload_state.stat.exists
+
 - name: Seed journald upload cursor from current journal tail on first install
   when:
     - debian_journald_initial_position == 'tail'
     - not debian_journald_upload_state.stat.exists
   block:
-    - name: Start journald upload service once to create state directory
-      ansible.builtin.systemd:
-        name: systemd-journal-upload.service
-        state: started
-
-    - name: Check seeded state file ownership
-      ansible.builtin.stat:
-        path: "{{ debian_journald_upload_state_path }}"
-      register: debian_journald_upload_seeded_state
-
     - name: Capture current journal cursor
       ansible.builtin.command:
         cmd: journalctl -n 1 --show-cursor --no-pager -q
@@ -98,9 +120,9 @@
         content: |-
           # This is private data. Do not parse.
           LAST_CURSOR={{ debian_journald_cursor_raw.stdout | regex_replace('^.*-- cursor: ', '') | trim }}
-        owner: "{{ debian_journald_upload_seeded_state.stat.pw_name | default(debian_journald_upload_seeded_state.stat.uid, true) }}"
-        group: "{{ debian_journald_upload_seeded_state.stat.gr_name | default(debian_journald_upload_seeded_state.stat.gid, true) }}"
-        mode: "{{ debian_journald_upload_seeded_state.stat.mode }}"
+        owner: "{{ debian_journald_upload_runtime_state_dir.stat.uid }}"
+        group: "{{ debian_journald_upload_runtime_state_dir.stat.gid }}"
+        mode: "0600"
 
 - name: Enable and start journald upload service
   ansible.builtin.systemd:
