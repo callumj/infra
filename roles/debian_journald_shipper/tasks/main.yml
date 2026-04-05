@@ -76,10 +76,10 @@
         name: systemd-journal-upload.service
         state: started
 
-    - name: Check state directory ownership
+    - name: Check seeded state file ownership
       ansible.builtin.stat:
-        path: "{{ debian_journald_upload_state_dir }}"
-      register: debian_journald_upload_state_dir_stat
+        path: "{{ debian_journald_upload_state_path }}"
+      register: debian_journald_upload_seeded_state
 
     - name: Capture current journal cursor
       ansible.builtin.command:
@@ -98,9 +98,9 @@
         content: |-
           # This is private data. Do not parse.
           LAST_CURSOR={{ debian_journald_cursor_raw.stdout | regex_replace('^.*-- cursor: ', '') | trim }}
-        owner: "{{ debian_journald_upload_state_dir_stat.stat.uid }}"
-        group: "{{ debian_journald_upload_state_dir_stat.stat.gid }}"
-        mode: "0600"
+        owner: "{{ debian_journald_upload_seeded_state.stat.pw_name | default(debian_journald_upload_seeded_state.stat.uid, true) }}"
+        group: "{{ debian_journald_upload_seeded_state.stat.gr_name | default(debian_journald_upload_seeded_state.stat.gid, true) }}"
+        mode: "{{ debian_journald_upload_seeded_state.stat.mode }}"
 
 - name: Enable and start journald upload service
   ansible.builtin.systemd:
