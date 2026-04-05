@@ -260,7 +260,8 @@ ensure_authorized_keys() {
   local ssh_dir
   local auth_keys
   local tmp_existing
-  local fetched_keys
+  local fetched_keys=""
+  local attempt=1
 
   user_home="$(get_user_home "$TARGET_USER")"
   [[ -n "$user_home" ]] || fatal "unable to determine home directory for '$TARGET_USER'"
@@ -273,7 +274,14 @@ ensure_authorized_keys() {
   touch "$auth_keys"
   chmod 0600 "$auth_keys"
 
-  fetched_keys="$(curl -4fsSL --retry 5 --retry-delay 2 "$KEYS_URL")" || fatal "failed to fetch keys from $KEYS_URL"
+  while [[ "$attempt" -le 5 ]]; do
+    if fetched_keys="$(curl -4fsSL "$KEYS_URL")"; then
+      break
+    fi
+    sleep 2
+    attempt=$((attempt + 1))
+  done
+  [[ -n "$fetched_keys" ]] || fatal "failed to fetch keys from $KEYS_URL"
   [[ -n "$fetched_keys" ]] || fatal "no keys found at $KEYS_URL"
 
   tmp_existing="$(mktemp)"

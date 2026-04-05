@@ -195,13 +195,19 @@ ensure_guest_prereqs() {
 run_bootstrap() {
   tmp_script="$(mktemp)"
   trap 'rm -f "$tmp_script"' EXIT
+  attempt=1
 
   if command -v curl >/dev/null 2>&1; then
-    if [ -n "${GITHUB_TOKEN:-}" ]; then
-      curl -4fsSL --retry 5 --retry-delay 2 -H "Authorization: Bearer ${GITHUB_TOKEN}" "${BOOTSTRAP_URL}" -o "${tmp_script}"
-    else
-      curl -4fsSL --retry 5 --retry-delay 2 "${BOOTSTRAP_URL}" -o "${tmp_script}"
-    fi
+    while [ "$attempt" -le 5 ]; do
+      if [ -n "${GITHUB_TOKEN:-}" ]; then
+        curl -4fsSL -H "Authorization: Bearer ${GITHUB_TOKEN}" "${BOOTSTRAP_URL}" -o "${tmp_script}" && break
+      else
+        curl -4fsSL "${BOOTSTRAP_URL}" -o "${tmp_script}" && break
+      fi
+      sleep 2
+      attempt=$((attempt + 1))
+    done
+    [ -s "${tmp_script}" ] || exit 1
     env TARGET_USER="${TARGET_USER}" KEYS_URL="${KEYS_URL}" VICTORIALOGS_SCHEME="${VICTORIALOGS_SCHEME:-}" VICTORIALOGS_HOST="${VICTORIALOGS_HOST:-}" VICTORIALOGS_PORT="${VICTORIALOGS_PORT:-}" DEBIAN_JOURNALD_INITIAL_POSITION="${DEBIAN_JOURNALD_INITIAL_POSITION:-}" bash "${tmp_script}"
     rm -f "${tmp_script}"
     trap - EXIT
@@ -209,11 +215,17 @@ run_bootstrap() {
   fi
 
   if command -v wget >/dev/null 2>&1; then
-    if [ -n "${GITHUB_TOKEN:-}" ]; then
-      wget -4 -qO "${tmp_script}" --tries=5 --waitretry=2 --header="Authorization: Bearer ${GITHUB_TOKEN}" "${BOOTSTRAP_URL}"
-    else
-      wget -4 -qO "${tmp_script}" --tries=5 --waitretry=2 "${BOOTSTRAP_URL}"
-    fi
+    attempt=1
+    while [ "$attempt" -le 5 ]; do
+      if [ -n "${GITHUB_TOKEN:-}" ]; then
+        wget -4 -qO "${tmp_script}" --header="Authorization: Bearer ${GITHUB_TOKEN}" "${BOOTSTRAP_URL}" && break
+      else
+        wget -4 -qO "${tmp_script}" "${BOOTSTRAP_URL}" && break
+      fi
+      sleep 2
+      attempt=$((attempt + 1))
+    done
+    [ -s "${tmp_script}" ] || exit 1
     env TARGET_USER="${TARGET_USER}" KEYS_URL="${KEYS_URL}" VICTORIALOGS_SCHEME="${VICTORIALOGS_SCHEME:-}" VICTORIALOGS_HOST="${VICTORIALOGS_HOST:-}" VICTORIALOGS_PORT="${VICTORIALOGS_PORT:-}" DEBIAN_JOURNALD_INITIAL_POSITION="${DEBIAN_JOURNALD_INITIAL_POSITION:-}" bash "${tmp_script}"
     rm -f "${tmp_script}"
     trap - EXIT
