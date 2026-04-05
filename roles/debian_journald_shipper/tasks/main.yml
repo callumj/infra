@@ -66,6 +66,22 @@
     path: "{{ debian_journald_upload_state_path }}"
   register: debian_journald_upload_state
 
+- name: Read existing journald upload state file
+  ansible.builtin.slurp:
+    path: "{{ debian_journald_upload_state_path }}"
+  register: debian_journald_upload_state_raw
+  when:
+    - debian_journald_initial_position == 'tail'
+    - debian_journald_upload_state.stat.exists
+
+- name: Mark whether existing journald upload state is valid
+  ansible.builtin.set_fact:
+    debian_journald_upload_state_valid: >-
+      {{ (debian_journald_upload_state_raw.content | b64decode) is regex('(?m)^LAST_CURSOR=s=') }}
+  when:
+    - debian_journald_initial_position == 'tail'
+    - debian_journald_upload_state.stat.exists
+
 - name: Check whether journald upload runtime state directory exists
   ansible.builtin.stat:
     path: "{{ debian_journald_upload_state_dir }}"
@@ -101,7 +117,7 @@
 - name: Seed journald upload cursor from current journal tail on first install
   when:
     - debian_journald_initial_position == 'tail'
-    - not debian_journald_upload_state.stat.exists
+    - not debian_journald_upload_state.stat.exists or not debian_journald_upload_state_valid | default(false)
   block:
     - name: Capture current journal cursor
       ansible.builtin.command:
