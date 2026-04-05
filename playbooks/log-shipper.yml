@@ -5,7 +5,7 @@
   gather_facts: true
   vars:
     victorialogs_scheme: "{{ lookup('env', 'VICTORIALOGS_SCHEME') | default('http', true) }}"
-    victorialogs_host: "{{ lookup('env', 'VICTORIALOGS_HOST') | default('192.168.52.124', true) }}"
+    victorialogs_host: "{{ lookup('env', 'VICTORIALOGS_HOST') | default('192.168.254.2', true) }}"
     victorialogs_port: "{{ (lookup('env', 'VICTORIALOGS_PORT') | default('9428', true)) | int }}"
 
   pre_tasks:

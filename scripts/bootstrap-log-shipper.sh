@@ -6,8 +6,9 @@ GITHUB_REF="${GITHUB_REF:-main}"
 CHECKOUT_DIR="${CHECKOUT_DIR:-/opt/infra}"
 PLAYBOOK_PATH="${PLAYBOOK_PATH:-playbooks/log-shipper.yml}"
 VICTORIALOGS_SCHEME="${VICTORIALOGS_SCHEME:-http}"
-VICTORIALOGS_HOST="${VICTORIALOGS_HOST:-192.168.52.124}"
+VICTORIALOGS_HOST="${VICTORIALOGS_HOST:-192.168.254.2}"
 VICTORIALOGS_PORT="${VICTORIALOGS_PORT:-9428}"
+DEBIAN_JOURNALD_INITIAL_POSITION="${DEBIAN_JOURNALD_INITIAL_POSITION:-tail}"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 
 log() {
@@ -101,7 +102,8 @@ run_playbook() {
     "$PLAYBOOK_PATH" \
     -e "victorialogs_scheme=$VICTORIALOGS_SCHEME" \
     -e "victorialogs_host=$VICTORIALOGS_HOST" \
-    -e "victorialogs_port=$VICTORIALOGS_PORT"
+    -e "victorialogs_port=$VICTORIALOGS_PORT" \
+    -e "debian_journald_initial_position=$DEBIAN_JOURNALD_INITIAL_POSITION"
 }
 
 main() {

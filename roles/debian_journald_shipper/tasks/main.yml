@@ -6,6 +6,13 @@
     fail_msg: >-
       Debian log shipping requires systemd because it uses systemd-journal-upload.
 
+- name: Assert supported Debian initial journald position
+  ansible.builtin.assert:
+    that:
+      - debian_journald_initial_position in ['head', 'tail']
+    fail_msg: >-
+      debian_journald_initial_position must be either 'head' or 'tail'.
+
 - name: Install journald upload support
   ansible.builtin.apt:
     name: "{{ debian_journald_upload_package }}"
@@ -53,6 +60,47 @@
     group: root
     mode: "0644"
   notify: Restart systemd-journal-upload
+
+- name: Check whether journald upload state already exists
+  ansible.builtin.stat:
+    path: "{{ debian_journald_upload_state_path }}"
+  register: debian_journald_upload_state
+
+- name: Seed journald upload cursor from current journal tail on first install
+  when:
+    - debian_journald_initial_position == 'tail'
+    - not debian_journald_upload_state.stat.exists
+  block:
+    - name: Start journald upload service once to create state directory
+      ansible.builtin.systemd:
+        name: systemd-journal-upload.service
+        state: started
+
+    - name: Check state directory ownership
+      ansible.builtin.stat:
+        path: "{{ debian_journald_upload_state_dir }}"
+      register: debian_journald_upload_state_dir_stat
+
+    - name: Capture current journal cursor
+      ansible.builtin.command:
+        cmd: journalctl -n 1 --show-cursor --no-pager -q
+      register: debian_journald_cursor_raw
+      changed_when: false
+
+    - name: Stop journald upload service before writing seeded state
+      ansible.builtin.systemd:
+        name: systemd-journal-upload.service
+        state: stopped
+
+    - name: Seed journald upload state file
+      ansible.builtin.copy:
+        dest: "{{ debian_journald_upload_state_path }}"
+        content: |-
+          # This is private data. Do not parse.
+          LAST_CURSOR={{ debian_journald_cursor_raw.stdout | regex_replace('^.*-- cursor: ', '') | trim }}
+        owner: "{{ debian_journald_upload_state_dir_stat.stat.uid }}"
+        group: "{{ debian_journald_upload_state_dir_stat.stat.gid }}"
+        mode: "0600"
 
 - name: Enable and start journald upload service
   ansible.builtin.systemd:

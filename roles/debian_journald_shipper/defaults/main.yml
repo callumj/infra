@@ -7,5 +7,8 @@ debian_journald_persistent_mode: "2755"
 debian_journald_upload_package: systemd-journal-remote
 debian_journald_upload_config_dir: /etc/systemd/journal-upload.conf.d
 debian_journald_upload_config_path: /etc/systemd/journal-upload.conf.d/10-victorialogs.conf
+debian_journald_upload_state_dir: /var/lib/systemd/journal-upload
+debian_journald_upload_state_path: /var/lib/systemd/journal-upload/state
 debian_journald_persistent_config_dir: /etc/systemd/journald.conf.d
 debian_journald_persistent_config_path: /etc/systemd/journald.conf.d/10-persistent-storage.conf
+debian_journald_initial_position: tail

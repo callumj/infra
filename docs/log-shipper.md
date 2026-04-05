@@ -1,6 +1,6 @@
 # Log Shipper
 
-This repo now contains a cross-distro Ansible playbook for shipping host logs to VictoriaLogs at `192.168.52.124:9428`.
+This repo now contains a cross-distro Ansible playbook for shipping host logs to VictoriaLogs at `192.168.254.2:9428`.
 
 ## Behavior
 
@@ -25,7 +25,7 @@ curl -fsSL https://raw.githubusercontent.com/callumj/infra/main/scripts/bootstra
 Override the VictoriaLogs target without editing the repo:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/callumj/infra/main/scripts/bootstrap-log-shipper.sh | sudo env VICTORIALOGS_HOST=192.168.52.124 VICTORIALOGS_PORT=9428 sh
+curl -fsSL https://raw.githubusercontent.com/callumj/infra/main/scripts/bootstrap-log-shipper.sh | sudo env VICTORIALOGS_HOST=192.168.254.2 VICTORIALOGS_PORT=9428 sh
 ```
 
 Point the bootstrap at a different branch:
@@ -37,5 +37,7 @@ curl -fsSL https://raw.githubusercontent.com/callumj/infra/main/scripts/bootstra
 ## Notes
 
 - Debian hosts are configured for persistent journald storage via `/etc/systemd/journald.conf.d/10-persistent-storage.conf`.
+- Debian defaults to `debian_journald_initial_position=tail`, so first install starts shipping new logs instead of replaying the entire existing journal backlog.
+- Set `DEBIAN_JOURNALD_INITIAL_POSITION=head` if you explicitly want a full historical backfill on first install.
 - Alpine defaults to `/var/log/messages`. Override `alpine_vector_log_paths` if a host writes logs elsewhere.
 - The Alpine Vector sink uses a disk buffer rooted in `/var/lib/vector`.
