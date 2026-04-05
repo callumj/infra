@@ -18,8 +18,7 @@
       Unsupported Alpine architecture for Vector: {{ ansible_architecture }}
 
 - name: Install Alpine runtime prerequisites
-  ansible.builtin.command:
-    cmd: apk add --no-cache ca-certificates tar
+  ansible.builtin.command: apk add --no-cache ca-certificates tar
   register: alpine_prereqs
   changed_when: "'Installing' in alpine_prereqs.stdout"
 

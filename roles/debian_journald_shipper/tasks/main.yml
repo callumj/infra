@@ -120,8 +120,7 @@
     - not debian_journald_upload_state.stat.exists or not debian_journald_upload_state_valid | default(false)
   block:
     - name: Capture current journal cursor
-      ansible.builtin.command:
-        cmd: journalctl -n 0 --show-cursor --no-pager -q
+      ansible.builtin.command: journalctl -n 0 --show-cursor --no-pager -q
       register: debian_journald_cursor_raw
       changed_when: false
 
