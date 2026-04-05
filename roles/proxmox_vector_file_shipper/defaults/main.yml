@@ -6,6 +6,7 @@ proxmox_vector_arch_map:
   aarch64: aarch64-unknown-linux-gnu
   arm64: aarch64-unknown-linux-gnu
 proxmox_vector_root: /opt/vector-proxmox-files
+proxmox_vector_install_dir: "{{ proxmox_vector_root }}/vector-{{ proxmox_vector_target }}"
 proxmox_vector_archive_path: "/tmp/vector-{{ proxmox_vector_version }}-{{ proxmox_vector_target }}.tar.gz"
 proxmox_vector_config_dir: /etc/vector-proxmox-files
 proxmox_vector_config_path: /etc/vector-proxmox-files/vector.yaml

@@ -6,10 +6,10 @@ After=network-online.target
 
 [Service]
 Type=simple
-ExecStart={{ proxmox_vector_root }}/bin/vector --config {{ proxmox_vector_config_path }}
+ExecStart={{ proxmox_vector_install_dir }}/bin/vector --config {{ proxmox_vector_config_path }}
 Restart=on-failure
 RestartSec=5
-WorkingDirectory={{ proxmox_vector_root }}
+WorkingDirectory={{ proxmox_vector_install_dir }}
 
 [Install]
 WantedBy=multi-user.target

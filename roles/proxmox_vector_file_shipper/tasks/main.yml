@@ -50,8 +50,6 @@
     src: "{{ proxmox_vector_archive_path }}"
     dest: "{{ proxmox_vector_root }}"
     remote_src: true
-    extra_opts:
-      - --strip-components=1
   notify: Restart proxmox vector file shipper
 
 - name: Configure Vector for Proxmox file log shipping
@@ -61,7 +59,7 @@
     owner: root
     group: root
     mode: "0644"
-    validate: "{{ proxmox_vector_root }}/bin/vector validate --no-environment --config-yaml %s"
+    validate: "{{ proxmox_vector_install_dir }}/bin/vector validate --no-environment --config-yaml %s"
   notify: Restart proxmox vector file shipper
 
 - name: Install systemd service for Proxmox Vector file shipper
