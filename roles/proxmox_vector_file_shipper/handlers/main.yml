@@ -1,0 +1,6 @@
+---
+- name: Restart proxmox vector file shipper
+  ansible.builtin.systemd:
+    name: "{{ proxmox_vector_service_name }}"
+    state: restarted
+    daemon_reload: true

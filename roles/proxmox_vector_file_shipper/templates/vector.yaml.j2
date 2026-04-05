@@ -1,0 +1,88 @@
+data_dir: {{ proxmox_vector_data_dir }}
+
+sources:
+  {{ proxmox_vector_source_name }}:
+    type: file
+    include:
+{% for path in proxmox_vector_log_paths %}
+      - {{ path | to_json }}
+{% endfor %}
+    read_from: {{ proxmox_vector_read_from }}
+    ignore_not_found: true
+
+transforms:
+  {{ proxmox_vector_transform_name }}:
+    type: remap
+    inputs:
+      - {{ proxmox_vector_source_name }}
+    source: |
+      .host = {{ ansible_fqdn | default(ansible_hostname) | to_json }}
+      .os_family = "Debian"
+      .source_type = "file"
+      .service = "proxmox-filelog"
+
+      if exists(.file) {
+        .log_file = string!(.file)
+      } else {
+        .log_file = "<unknown>"
+      }
+
+      if match(.log_file, r'/var/log/pveproxy/access\.log$') {
+        .service = "pveproxy-access"
+        parsed, err = parse_regex(.message, r'\[(?P<ts>[^\]]+)\]')
+        if err == null && exists(parsed.ts) {
+          ts, ts_err = parse_timestamp(parsed.ts, format: "%d/%m/%Y:%H:%M:%S %z")
+          if ts_err == null {
+            .timestamp = ts
+          }
+        }
+      } else if match(.log_file, r'/var/log/pveam\.log$') {
+        .service = "pveam-file"
+      } else if match(.log_file, r'/var/log/pve-firewall\.log$') {
+        .service = "pve-firewall-file"
+        parsed, err = parse_regex(.message, r'(?P<ts>\d{2}/[A-Za-z]{3}/\d{4}:\d{2}:\d{2}:\d{2} [+-]\d{4})')
+        if err == null && exists(parsed.ts) {
+          ts, ts_err = parse_timestamp(parsed.ts, format: "%d/%b/%Y:%H:%M:%S %z")
+          if ts_err == null {
+            .timestamp = ts
+          }
+        }
+      } else if match(.log_file, r'/var/log/ultimate-updater\.log$') {
+        .service = "ultimate-updater-file"
+      } else if match(.log_file, r'/var/log/vzdump/') {
+        .service = "vzdump-file"
+      } else if match(.log_file, r'/var/log/pve/tasks/') {
+        .service = "pve-task-file"
+      }
+
+      if !exists(.timestamp) {
+        parsed, err = parse_regex(.message, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})')
+        if err == null && exists(parsed.ts) {
+          ts, ts_err = parse_timestamp(parsed.ts, format: "%F %T", timezone: "America/New_York")
+          if ts_err == null {
+            .timestamp = ts
+          }
+        }
+      }
+
+      if !exists(.timestamp) {
+        .timestamp = now()
+      }
+
+sinks:
+  {{ proxmox_vector_sink_name }}:
+    type: http
+    inputs:
+      - {{ proxmox_vector_transform_name }}
+    uri: {{ proxmox_vector_uri | to_json }}
+    compression: gzip
+    encoding:
+      codec: json
+    framing:
+      method: newline_delimited
+    healthcheck:
+      enabled: false
+    buffer:
+      type: disk
+      max_size: {{ proxmox_vector_buffer_max_size }}
+      when_full: block

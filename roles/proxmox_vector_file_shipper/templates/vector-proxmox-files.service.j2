@@ -1,0 +1,15 @@
+[Unit]
+Description=Vector Proxmox file log shipper
+Documentation=https://vector.dev
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart={{ proxmox_vector_root }}/bin/vector --config {{ proxmox_vector_config_path }}
+Restart=on-failure
+RestartSec=5
+WorkingDirectory={{ proxmox_vector_root }}
+
+[Install]
+WantedBy=multi-user.target

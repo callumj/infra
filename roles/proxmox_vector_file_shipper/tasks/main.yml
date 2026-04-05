@@ -1,0 +1,81 @@
+---
+- name: Assert systemd is the active service manager
+  ansible.builtin.assert:
+    that:
+      - ansible_service_mgr == 'systemd'
+    fail_msg: >-
+      Proxmox file log shipping expects systemd because this role installs a native systemd service for Vector.
+
+- name: Resolve Vector target architecture
+  ansible.builtin.set_fact:
+    proxmox_vector_target: "{{ proxmox_vector_arch_map.get(ansible_architecture, '') }}"
+
+- name: Assert Vector target architecture is supported
+  ansible.builtin.assert:
+    that:
+      - proxmox_vector_target | length > 0
+    fail_msg: >-
+      Unsupported Proxmox architecture for Vector: {{ ansible_architecture }}
+
+- name: Install Proxmox Vector runtime prerequisites
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - tar
+    state: present
+    update_cache: true
+
+- name: Ensure Proxmox Vector directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ proxmox_vector_root }}"
+    - "{{ proxmox_vector_config_dir }}"
+    - "{{ proxmox_vector_data_dir }}"
+
+- name: Download Proxmox Vector archive
+  ansible.builtin.get_url:
+    url: "https://packages.timber.io/vector/{{ proxmox_vector_version }}/vector-{{ proxmox_vector_version }}-{{ proxmox_vector_target }}.tar.gz"
+    dest: "{{ proxmox_vector_archive_path }}"
+    mode: "0644"
+    force: true
+  notify: Restart proxmox vector file shipper
+
+- name: Extract Proxmox Vector archive
+  ansible.builtin.unarchive:
+    src: "{{ proxmox_vector_archive_path }}"
+    dest: "{{ proxmox_vector_root }}"
+    remote_src: true
+    extra_opts:
+      - --strip-components=1
+  notify: Restart proxmox vector file shipper
+
+- name: Configure Vector for Proxmox file log shipping
+  ansible.builtin.template:
+    src: vector.yaml.j2
+    dest: "{{ proxmox_vector_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "{{ proxmox_vector_root }}/bin/vector validate --no-environment --config-yaml %s"
+  notify: Restart proxmox vector file shipper
+
+- name: Install systemd service for Proxmox Vector file shipper
+  ansible.builtin.template:
+    src: vector-proxmox-files.service.j2
+    dest: "/etc/systemd/system/{{ proxmox_vector_service_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart proxmox vector file shipper
+
+- name: Enable and start Proxmox Vector file shipper
+  ansible.builtin.systemd:
+    name: "{{ proxmox_vector_service_name }}"
+    enabled: true
+    state: started
+    daemon_reload: true

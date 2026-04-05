@@ -1,0 +1,29 @@
+---
+proxmox_vector_version: "0.53.0"
+proxmox_vector_arch_map:
+  x86_64: x86_64-unknown-linux-gnu
+  amd64: x86_64-unknown-linux-gnu
+  aarch64: aarch64-unknown-linux-gnu
+  arm64: aarch64-unknown-linux-gnu
+proxmox_vector_root: /opt/vector-proxmox-files
+proxmox_vector_archive_path: "/tmp/vector-{{ proxmox_vector_version }}-{{ proxmox_vector_target }}.tar.gz"
+proxmox_vector_config_dir: /etc/vector-proxmox-files
+proxmox_vector_config_path: /etc/vector-proxmox-files/vector.yaml
+proxmox_vector_data_dir: /var/lib/vector-proxmox-files
+proxmox_vector_service_name: vector-proxmox-files
+proxmox_vector_read_from: end
+proxmox_vector_buffer_max_size: 268435488
+proxmox_vector_log_paths:
+  - /var/log/pveproxy/access.log
+  - /var/log/pveam.log
+  - /var/log/pve-firewall.log
+  - /var/log/ultimate-updater.log
+  - /var/log/vzdump/*.log
+  - /var/log/pve/tasks/index
+  - /var/log/pve/tasks/active
+  - /var/log/pve/tasks/*/UPID*
+proxmox_vector_source_name: proxmox_file_logs
+proxmox_vector_transform_name: normalize_for_victorialogs
+proxmox_vector_sink_name: victorialogs
+proxmox_vector_uri: >-
+  {{ victorialogs_scheme }}://{{ victorialogs_host }}:{{ victorialogs_port }}/insert/jsonline?_stream_fields=host,service,os_family,source_type&_msg_field=message&_time_field=timestamp

@@ -16,9 +16,19 @@
         fail_msg: >-
           This playbook currently supports Debian and Alpine hosts only.
 
+    - name: Detect Proxmox host layout
+      ansible.builtin.stat:
+        path: /etc/pve
+      register: proxmox_pve_dir
+
   roles:
     - role: debian_journald_shipper
       when: ansible_os_family == 'Debian'
+
+    - role: proxmox_vector_file_shipper
+      when:
+        - ansible_os_family == 'Debian'
+        - proxmox_pve_dir.stat.exists
 
     - role: alpine_vector_shipper
       when: ansible_os_family == 'Alpine'
