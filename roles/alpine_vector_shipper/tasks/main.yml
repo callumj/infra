@@ -18,11 +18,10 @@
       Unsupported Alpine architecture for Vector: {{ ansible_architecture }}
 
 - name: Install Alpine runtime prerequisites
-  ansible.builtin.package:
-    name:
-      - ca-certificates
-      - tar
-    state: present
+  ansible.builtin.command:
+    cmd: apk add --no-cache ca-certificates tar
+  register: alpine_prereqs
+  changed_when: "'Installing' in alpine_prereqs.stdout"
 
 - name: Ensure Vector directories exist
   ansible.builtin.file:
